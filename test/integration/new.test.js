@@ -5,7 +5,7 @@
 var assert  = require('assert');
 var fs    = require('fs-extra');
 var exec  = require('child_process').exec;
-var _   = require('lodash');
+var _   = require('@sailshq/lodash');
 var appHelper = require('./helpers/appHelper');
 var path = require('path');
 var util  = require('util');
@@ -45,7 +45,7 @@ describe('New app generator', function() {
   describe('sails new <appname>', function() {
 
     it('should create new, liftable app in new folder', function(done) {
-      exec('node '+ sailsbin + ' new ' + appName, function(err) {
+      exec('node '+ sailsbin + ' new ' + appName + ' --fast --without=lodash,async', function(err) {
         if (err) { return done(new Error(err)); }
         appHelper.lift({log:{level:'silent'}}, function(err, sailsApp) {
           if (err) {return done(err);}
@@ -71,7 +71,7 @@ describe('New app generator', function() {
   describe('sails generate new <appname>', function() {
 
     it('should create new app', function(done) {
-      exec('node '+ sailsbin + ' generate new ' + appName, function(err) {
+      exec('node '+ sailsbin + ' generate new ' + appName + ' --fast --without=lodash,async', function(err) {
         if (err) { return done(new Error(err)); }
         appHelper.lift({log:{level:'silent'}}, function(err, sailsApp) {
           if (err) {return done(err);}
@@ -102,7 +102,7 @@ describe('New app generator', function() {
       fs.mkdirSync(appName);
       process.chdir(appName);
 
-      exec( 'node '+ path.resolve('..', sailsbin) + ' new .', function(err) {
+      exec( 'node '+ path.resolve('..', sailsbin) + ' new . --fast --without=lodash,async', function(err) {
         if (err) { return done(new Error(err)); }
 
         // move from app to its parent directory
@@ -117,7 +117,7 @@ describe('New app generator', function() {
       fs.mkdirSync(appName);
       process.chdir(appName);
       fs.mkdirSync('test');
-      exec( 'node ' + path.resolve('..', sailsbin) + ' new .', function(err, dumb, result) {
+      exec( 'node ' + path.resolve('..', sailsbin) + ' new . --fast --without=lodash,async', function(err, dumb, result) {
         // move from app to its parent directory
         process.chdir('../');
         assert.notEqual(result.indexOf('error'), -1);
@@ -126,45 +126,4 @@ describe('New app generator', function() {
     });
   });
 
-  describe('sails new with no template option', function() {
-
-    it('should create new app with ejs templates', function(done) {
-
-      exec('node '+ sailsbin + ' new ' + appName, function(err) {
-        if (err) { return done(new Error(err)); }
-
-        var viewConfig = fs.readFileSync('./' + appName + '/config/views.js', 'utf8');
-        assert(viewConfig.indexOf('ejs') !== -1, 'configuration file is incorrect');
-        done();
-      });
-    });
-  });
-
-  describe('sails new <appname> with options --template=ejs', function() {
-
-    it('should create new app with ejs templates', function(done) {
-
-      exec('node '+ sailsbin + ' new ' + appName + ' --template=ejs', function(err) {
-        if (err) { return done(new Error(err)); }
-
-        var viewConfig = fs.readFileSync('./' + appName + '/config/views.js', 'utf8');
-        assert(viewConfig.indexOf('ejs') !== -1, 'configuration file is incorrect');
-        done();
-      });
-    });
-  });
-
-  describe('sails new <appname> with options --template=jade', function() {
-
-    it('should create new app with jade templates', function(done) {
-
-      exec('node '+ sailsbin + ' new ' + appName + ' --template=jade', function(err) {
-        if (err) { return done(new Error(err)); }
-
-        var viewConfig = fs.readFileSync('./' + appName + '/config/views.js', 'utf8');
-        assert(viewConfig.indexOf('jade') !== -1, 'configuration file is incorrect');
-        done();
-      });
-    });
-  });
 });

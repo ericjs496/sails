@@ -6,9 +6,10 @@ var path = require('path');
 var child_process = require('child_process');
 var exec = child_process.exec;
 var fs = require('fs-extra');
-var _ = require('lodash');
+var _ = require('@sailshq/lodash');
 var SocketIOClient = require('socket.io-client');
-var SailsIOClient = require('./sails.io.js');
+delete require.cache[require.resolve('socket.io-client')];
+var SailsIOClient = require('sails.io.js');
 var Sails = require('../../../lib/app');
 
 
@@ -78,11 +79,12 @@ module.exports = {
 
     //
     process.chdir(appName);
-    child_process.exec('node ' + pathToLocalSailsCLI + ' new', function(err) {
+    child_process.exec('node ' + pathToLocalSailsCLI + ' new --fast --without=lodash,async', function(err) {
       if (err) {
         return done(err);
       }
-
+      // Symlink dependencies
+      module.exports.linkDeps('.');
       // Copy test fixtures to the test app.
       fs.copy('../test/integration/fixtures/sampleapp', './', done);
     });
@@ -141,7 +143,8 @@ module.exports = {
     options = options || {};
     _.defaults(options, {
       port: 1342,
-      environment: process.env.TEST_ENV
+      environment: process.env.TEST_ENV,
+      globals: false
     });
     options.hooks = options.hooks || {};
     options.hooks.grunt = options.hooks.grunt || false;
@@ -154,6 +157,34 @@ module.exports = {
     });
 
   },
+
+  load: function(options, callback) {
+
+    // Clear NODE_ENV to avoid unintended consequences.
+    delete process.env.NODE_ENV;
+
+    if (_.isFunction(options)) {
+      callback = options;
+      options = null;
+    }
+
+    options = options || {};
+    _.defaults(options, {
+      port: 1342,
+      environment: process.env.TEST_ENV
+    });
+    options.hooks = options.hooks || {};
+    options.hooks.grunt = options.hooks.grunt || false;
+
+    Sails().load(options, function(err, sails) {
+      if (err) {
+        return callback(err);
+      }
+      return callback(null, sails);
+    });
+
+  },
+
 
   buildAndLift: function(appName, options, callback) {
     if (_.isFunction(options)) {
@@ -203,6 +234,27 @@ module.exports = {
       }
       module.exports.liftWithTwoSockets(options, callback);
     });
+  },
+
+  linkDeps: function(appPath) {
+    var deps = ['sails-hook-orm', 'sails-hook-sockets', 'sails-disk'];
+    _.each(deps, function(dep) {
+      fs.ensureSymlinkSync(path.resolve(__dirname, '..', '..', '..', 'node_modules', dep), path.resolve(appPath, 'node_modules', dep));
+    });
+  },
+
+  linkLodash: function(appPath) {
+    fs.ensureSymlinkSync(path.resolve(__dirname, '..', '..', '..', 'node_modules', '@sailshq', 'lodash'), path.resolve(appPath, 'node_modules', 'lodash'));
+  },
+
+
+  linkAsync: function(appPath) {
+    fs.ensureSymlinkSync(path.resolve(__dirname, '..', '..', '..', 'node_modules', 'async'), path.resolve(appPath, 'node_modules', 'async'));
+  },
+
+
+  linkSails: function(appPath) {
+    fs.ensureSymlinkSync(path.resolve(__dirname, '..', '..', '..'), path.resolve(appPath, 'node_modules', 'sails'));
   },
 
 };
